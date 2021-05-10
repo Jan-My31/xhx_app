@@ -1,0 +1,63 @@
+{
+
+
+	"pages": [
+		// {
+		// 	"path": "pages/index/index",
+		// 	"style": {
+		// 		"navigationBarTitleText": "首页",
+		// 		"navigationBarBackgroundColor": "#5064eb"
+		// 	}
+		// },
+		// {
+		// 	"path": "pages/login/login",
+		// 	"style": {
+		// 		"navigationBarTitleText": "登录",
+		// 		"navigationBarBackgroundColor": "#5064eb"
+		// 	}
+		// },
+		{
+			"path": "pages/news/index",
+			"style": {
+				// "navigationBarTitleText": "刷新",
+				// "enablePullDownRefresh": true
+
+				"navigationBarTitleText": "公告管理",
+				"navigationBarBackgroundColor": "#5064eb"
+			}
+		},
+		{
+			"path": "pages/detail/detail",
+			"style": {
+				"app-plus": {
+					"titleNView": {
+						"type": "transparent"
+					}
+				}
+			}
+		}
+	],
+	"globalStyle": {
+		"navigationBarTextStyle": "white",
+		"navigationBarTitleText": "公告管理",
+		"navigationBarBackgroundColor": "#5064eb",
+		"backgroundColor": "#f8f8f8"
+	},
+	"rightWindow": {
+		"path": "responsive/right-window.vue",
+		"style": {
+			"width": "calc(100vw - 450px)"
+		},
+		"matchMedia": {
+			"minWidth": 768
+		}
+	},
+	"condition": { //模式配置，仅开发期间生效
+		"current": 0, //当前激活的模式(list 的索引项)
+		"list": [{
+			"name": "", //模式名称
+			"path": "", //启动页面，必选
+			"query": "" //启动参数，在页面的onLoad函数里面得到
+		}]
+	}
+}

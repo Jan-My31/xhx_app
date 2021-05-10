@@ -1,0 +1,304 @@
+<template>
+	<div>
+	<view class="content">
+		<view class="banner" auto-focus>
+			<image class="banner-img" :src="banner.image_url"></image>
+			<view class="title-area">
+				<text class="title-text">{{banner.title}}</text>
+			</view>
+		</view>
+		<view class="article-meta">
+			<text class="article-meta-text article-author">{{banner.info_market}}</text>
+			<text class="article-meta-text article-text">发表于</text>
+			<text class="article-meta-text article-time">{{banner.info_date}}</text>
+		</view>
+		<view class="article-content">
+			<rich-text :nodes="content" style="font-size: 14px;"></rich-text>
+		</view>
+		<view class="comment-wrap"></view>
+	</view>
+	<view v-for="(item, index) in files_list">
+		<button type="primary" class="mini-btn" size="mini" @click="DownloadFile">{{item.file_name}}</button>
+	</view>
+	</div>
+</template>
+
+<script>
+	import htmlParser from '@/common/html-parser'
+
+	const FAIL_CONTENT = '<p>获取信息失败1</p>';
+
+	function parseImgs(nodes) {
+		nodes.forEach(node => {
+			if (
+				node.name === 'img' &&
+				node.attrs &&
+				node.attrs['data-img-size-val']
+			) {
+				const sizes = node.attrs['data-img-size-val'].split(',')
+				const width = uni.upx2px(720 * 0.9)
+				const height = parseInt(width * (sizes[1] / sizes[0]))
+				node.attrs.style = `width:${width};height:${height};`
+			}
+			if (Array.isArray(node.children)) {
+				parseImgs(node.children)
+			}
+		})
+		return nodes
+	}
+
+	export default {
+		data() {
+			return {
+				banner: {},
+				content: [],
+				files_list: [],
+				tempFilePath: [],
+
+
+
+			}
+		},
+		onShareAppMessage() {
+			return {
+				title: this.banner.title,
+				path: '/pages/detail/detail?query=' + JSON.stringify(this.banner)
+			}
+		},
+		onLoad(event) {
+			// 目前在某些平台参数会被主动 decode，暂时这样处理。
+
+			this.load(event.query);
+		},
+		methods: {
+			load(e) {
+				var p = decodeURIComponent(e);
+				try {
+					this.banner = JSON.parse(p);
+				} catch (error) {
+					this.banner = JSON.parse(p);
+				}
+
+				uni.setNavigationBarTitle({
+					title: this.banner.title
+				});
+
+				this.getDetail();
+				this.get_Files();
+				this.DownloadFile();
+			},
+			getDetail() {
+				uni.request({
+					// url: 'https://unidemo.dcloud.net.cn/api/news/36kr/' + this.banner.post_id,
+					url: 'http://www.xinhuaxing.vip:8999/allinfo/?id=' + this.banner.post_id,
+
+					success: (result) => {
+						let content = FAIL_CONTENT
+						if (result.statusCode == 200) {
+							content = result.data.results[0].info_detail
+
+						}
+
+						const nodes = htmlParser(content);
+						// #ifdef APP-PLUS-NVUE
+						parseImgs(nodes)
+						// #endif
+						this.content = nodes
+					}
+				});
+			},
+
+			get_Files() {
+				uni.request({
+					url: 'http://www.xinhuaxing.vip:8999/files/?uid=' + this.banner.post_id,
+					success: (file_res) => {
+						const files = file_res.data;
+						const files_list = files.map((file) => {
+							// console.log();
+							
+							return {
+								uid: file.uid,
+								file_name: file.file_name,
+
+
+							};
+							// uni.downloadFile({
+							// 	url: 'http://www.xinhuaxing.vip:8999/media/' +file.uid+'/'+file.file_name,
+							// 	success:(res)=>{
+							// 		if (res.statusCode===200){
+							// 			console.log("下载成功");
+							// 		}
+							// 	}
+
+							// });
+						});
+
+
+
+
+						this.files_list = files_list;
+						console.log(files_list);
+
+
+					}
+				});
+
+			},
+
+			DownloadFile() {
+				this.files_list.map((file) => {
+				const downloadTask =uni.downloadFile({
+						url: 'http://www.xinhuaxing.vip:8999/media/' + file.uid + '/' + file.file_name,
+						success: (res) => {
+							if (res.statusCode === 200) {
+								uni.saveFile({
+									tempFilePath: res.tempFilePath,
+									success: function(res){
+										uni.showToast({
+											title: '保存到:'+res.savedFilePath,
+											mask:true,
+											duration: 3000,
+										});
+										setTimeout(()=>{
+											uni.openDocument({
+												filePath:res.savedFilePath,
+												success:function(res){
+													console.log('打开文档成功');
+												}
+											});
+										},3000)
+										
+
+									}
+								});
+							}
+						}
+					});
+					
+					downloadTask.onProgressUpdate((res) =>{
+						console.log('下载进度' + res.progress);
+						console.log('已经下载的数据长度' + res.totalBytesWritten);
+						console.log('预期需要下载的数据总长度' + res.totalBytesExpectedToWrite);
+					
+					});
+
+				})
+
+
+
+			}
+			// 	uni.downloadFile({
+			// 		url: 'http://www.xinhuaxing.vip:8999/media/' +this.banner.post_id+'/'+this.files_list.file_name, 
+
+			// 		success: (res)=>{
+			// 		let path=res.tempFilePath;
+			// 			if (res.statusCode === 200) {
+			// 				console.log(res.data);
+			// 				onsole.log("下载成功");
+			// 			}
+			// let that =this;
+			// uni.saveFile({
+
+			// 	success:function(red){
+			// 		that.lui=red.savedFilePath;
+			// 		console.log(red);
+			// 	}
+			// });
+
+			// }
+			// });
+		
+			// },
+		}
+	}
+</script>
+
+<style>
+	/* #ifndef APP-PLUS */
+	page {
+		min-height: 100%;
+	}
+
+	/* #endif */
+
+	.banner {
+		height: 180px;
+		position: relative;
+		background-color: #ccc;
+		flex-direction: row;
+		overflow: hidden;
+	}
+
+	.banner-img {
+		flex: 1;
+	}
+
+	.title-area {
+		position: absolute;
+		left: 15px;
+		right: 15px;
+		bottom: 15px;
+		z-index: 11;
+	}
+
+	.title-text {
+		font-size: 16px;
+		font-weight: 400;
+		line-height: 20px;
+		lines: 2;
+		color: #ffffff;
+		overflow: hidden;
+	}
+
+	.article-meta {
+		padding: 10px 15px;
+		flex-direction: row;
+		align-items: center;
+		justify-content: flex-start;
+	}
+
+	.article-meta-text {
+		color: gray;
+	}
+
+	.article-text {
+		font-size: 16px;
+		line-height: 25px;
+		margin: 0 10px;
+		color: #1900ff;
+	}
+
+	.article-download {
+		font-size: 15px;
+		line-height: 25px;
+		margin: 0 10px;
+		color: #1149ff;
+	}
+
+	.article-author {
+		font-size: 15px;
+	}
+
+	.article-time {
+		font-size: 15px;
+	}
+
+	.article-content {
+		font-size: 15px;
+		padding: 0 15px;
+		margin-bottom: 15px;
+		overflow: hidden;
+	}
+
+	/* #ifdef H5 */
+
+	.article-content {
+		line-height: 1.8;
+	}
+
+	.article-content img {
+		max-width: 100%;
+	}
+
+	/* #endif */
+</style>
